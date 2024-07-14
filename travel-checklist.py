@@ -6,12 +6,9 @@ def load_data():
     return pd.read_excel('travel_packing_list.xlsx')
 
 def save_data(df):
-    print(df)
-    print('saved')
     df.to_excel('travel_packing_list.xlsx', index=False)
 
 def main():
-    print('loaded')
     st.title("Interactive Checklist")
 
     # Load data
@@ -38,15 +35,8 @@ def main():
             with col1:
                 st.write(row['Item Name'])
             with col2:
-                print(df)
                 if st.button("Tick" if row['Status'] == 0 else "Untick", key=idx):
-                    print('clicked')
-                    print(row)
-
-                    #df.at[idx, 'Status'] = 1 if row['Status'] == 0 else 0
                     df.loc[idx, 'Status'] = 1 if row['Status'] == 0 else 0
-                    print(df)
-                    print('end')
                     save_data(df)
                     st.experimental_rerun()
 
