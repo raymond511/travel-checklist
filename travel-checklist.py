@@ -14,9 +14,13 @@ def main():
     # Load data
     df = load_data()
 
+    # Initialize session state for edit inputs
+    if 'edit_mode' not in st.session_state:
+        st.session_state.edit_mode = {}
+
     # Filter options
     filter_option = st.radio("Filter items:", ("All", "Ticked", "Unticked"))
-    
+
     # Display categories
     categories = df['Category'].unique()
     for category in categories:
@@ -31,14 +35,33 @@ def main():
 
         # Display items with interactive buttons
         for idx, row in category_items.iterrows():
-            col1, col2 = st.columns([3, 1])
+            col1, col2, col3, col4 = st.columns([3, 1, 1, 1])
             with col1:
-                st.write(row['Item Name'])
+                if st.session_state.edit_mode.get(idx, False):
+                    new_name = st.text_input("Edit Item Name", value=row['Item Name'], key=f"edit_input_{idx}")
+                else:
+                    st.write(row['Item Name'])
             with col2:
-                if st.button("Tick" if row['Status'] == 0 else "Untick", key=idx):
+                if st.button("Tick" if row['Status'] == 0 else "Untick", key=f"tick_{idx}"):
                     df.loc[idx, 'Status'] = 1 if row['Status'] == 0 else 0
                     save_data(df)
-                    st.experimental_rerun()
+                    st.rerun()
+            with col3:
+                button_label = "Save" if st.session_state.edit_mode.get(idx, False) else "Edit"
+                if st.button(button_label, key=f"edit_save_{idx}"):
+                    if st.session_state.edit_mode.get(idx, False):
+                        if f"edit_input_{idx}" in st.session_state:
+                            df.loc[idx, 'Item Name'] = st.session_state[f"edit_input_{idx}"]
+                            save_data(df)
+                        st.session_state.edit_mode[idx] = False
+                    else:
+                        st.session_state.edit_mode[idx] = True
+                    st.rerun()
+            with col4:
+                if st.button("Delete", key=f"delete_{idx}"):
+                    df = df.drop(idx)
+                    save_data(df)
+                    st.rerun()
 
     # Add new category and item
     st.sidebar.header("Add New Category")
@@ -49,7 +72,7 @@ def main():
             new_row = pd.DataFrame({"Category": [new_category], "Item Name": [new_category_item], "Status": [0]})
             df = pd.concat([df, new_row], ignore_index=True)
             save_data(df)
-            st.experimental_rerun()
+            st.rerun()
 
     # Add new item
     st.sidebar.header("Add New Item")
@@ -60,17 +83,7 @@ def main():
             new_row = pd.DataFrame({"Category": [selected_category], "Item Name": [new_item], "Status": [0]})
             df = pd.concat([df, new_row], ignore_index=True)
             save_data(df)
-            st.experimental_rerun()
-
-    # Delete item
-    st.sidebar.header("Delete Item")
-    item_to_delete = st.sidebar.selectbox("Select Item to Delete", df['Item Name'])
-    if st.sidebar.button("Delete Item"):
-        if item_to_delete:
-            df = df[df['Item Name'] != item_to_delete]
-            save_data(df)
-            st.experimental_rerun()
+            st.rerun()
 
 if __name__ == "__main__":
     main()
-
